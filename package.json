@@ -1,6 +1,6 @@
 {
   "name": "fitbit-asap",
-  "version": "0.2.4",
+  "version": "1.0.0",
   "description": "Send peer messages on Fitbit OS without worrying about connection state.",
   "repository": {
     "type": "git",
