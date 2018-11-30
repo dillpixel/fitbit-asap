@@ -1,0 +1,30 @@
+{
+  "name": "fitbit-asap-test",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "fitbit": {
+    "appUUID": "e769a22e-1c98-425d-a934-7dc1127c8b59",
+    "appType": "clockface",
+    "appDisplayName": "Fitbit ASAP",
+    "iconFile": "resources/icon.png",
+    "wipeColor": "#ffffff",
+    "requestedPermissions": [],
+    "buildTargets": [
+      "higgs",
+      "meson"
+    ],
+    "i18n": {}
+  },
+  "devDependencies": {
+    "@fitbit/sdk": "~1.0.4",
+    "@fitbit/sdk-cli": "^1.0.2"
+  },
+  "dependencies": {
+    "fitbit-asap": "^0.2.4"
+  },
+  "scripts": {
+    "build": "fitbit-build",
+    "debug": "fitbit"
+  }
+}
