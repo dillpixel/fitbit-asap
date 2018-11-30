@@ -1,6 +1,6 @@
 {
   "name": "fitbit-asap",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Send peer messages on Fitbit OS without worrying about connection state.",
   "repository": {
     "type": "git",
@@ -16,8 +16,7 @@
   },
   "homepage": "https://github.com/dillpixel/fitbit-asap#readme",
   "devDependencies": {
-    "@fitbit/sdk": "~1.0.4",
-    "@fitbit/sdk-cli": "^1.0.2"
+    "@fitbit/sdk": "~1.0.4"
   },
   "scripts": {
     "build": "tsc -project ./source/tsconfig.json --outDir ./",
