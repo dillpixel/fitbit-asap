@@ -1,6 +1,6 @@
 {
   "name": "fitbit-asap-test",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "license": "MIT",
   "fitbit": {
@@ -21,7 +21,7 @@
     "@fitbit/sdk-cli": "^1.0.2"
   },
   "dependencies": {
-    "fitbit-asap": "^1.0.0"
+    "fitbit-asap": "^1.0.1"
   },
   "scripts": {
     "build": "fitbit-build",
