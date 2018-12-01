@@ -17,8 +17,10 @@ const enqueue = (data) => {
   queue.push(data)
   writeFileSync("_asap_queue", queue, "cbor")
   // Attempt to send the data immediately
-  if (peerSocket.readyState === peerSocket.OPEN) {
+  try {
     peerSocket.send(data)
+  } catch (error) {
+    debug && console.log(error)
   }
 }
 

@@ -13,8 +13,10 @@ const enqueue = (data) => {
   queue.push(data)
   localStorage.setItem("_asap_queue", JSON.stringify(queue))
   // Attempt to send the data immediately
-  if (peerSocket.readyState === peerSocket.OPEN) {
+  try {
     peerSocket.send(data)
+  } catch (error) {
+    debug && console.log(error)
   }
 }
 
