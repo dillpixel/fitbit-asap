@@ -32,6 +32,44 @@ const dequeue = (id) => {
   localStorage.setItem("_asap_queue", JSON.stringify(queue))
 }
 
+const send = (message, options) => {
+  const now = Date.now()
+  // Set default options
+  options = options || {}
+  options.timeout = options.timeout || 2592000000 // 30 days
+  // Create the data object
+  const data = {
+    _asap_id: Math.floor(Math.random() * 10000000000), // Random 10-digit number
+    _asap_created: now,
+    _asap_expires: now + options.timeout,
+    _asap_status: "sending",
+    _asap_message: message
+  }
+  // Add the data to the queue
+  enqueue(data)
+}
+
+const send_all = () => {
+  const queue = get_queue()
+  for (let data of queue) {
+    try {
+      peerSocket.send(data)
+    } catch (error) {
+      debug && console.log(error)
+    }
+  }
+}
+
+// Attempt to send enqueued data after startup (the onopen event is unreliable during startup)
+setTimeout(() => {
+  send_all()
+}, 1000)
+
+// Attempt to send enqueued data when a connection opens after startup
+peerSocket.onopen = () => {
+  send_all()
+}
+
 peerSocket.onmessage = event => {
   const data = event.data
   if (data._asap_id) {
@@ -49,22 +87,7 @@ peerSocket.onmessage = event => {
   }
 }
 
-const send = (message, options) => {
-  const now = Date.now()
-  // Set default options
-  options = options || {}
-  options.timeout = options.timeout || 2592000000 // 30 days
-  // Create the data object
-  const data = {
-    _asap_id: Math.floor(Math.random() * 10000000000), // Random 10-digit number
-    _asap_created: now,
-    _asap_expires: now + options.timeout,
-    _asap_status: "sending",
-    _asap_message: message
-  }
-  // Add the data to the queue
-  enqueue(data)
-}
+
 
 const asap = {
   send: send,

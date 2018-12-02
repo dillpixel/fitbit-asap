@@ -1,6 +1,6 @@
 {
   "name": "fitbit-asap-test",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "license": "MIT",
   "fitbit": {
@@ -9,7 +9,10 @@
     "appDisplayName": "Fitbit ASAP",
     "iconFile": "resources/icon.png",
     "wipeColor": "#ffffff",
-    "requestedPermissions": [],
+    "requestedPermissions": [
+      "access_internet",
+      "run_background"
+    ],
     "buildTargets": [
       "higgs",
       "meson"
@@ -19,9 +22,6 @@
   "devDependencies": {
     "@fitbit/sdk": "~1.0.4",
     "@fitbit/sdk-cli": "^1.0.2"
-  },
-  "dependencies": {
-    "fitbit-asap": "^1.0.3"
   },
   "scripts": {
     "build": "fitbit-build",

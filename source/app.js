@@ -36,31 +36,6 @@ const dequeue = (id) => {
   writeFileSync("_asap_queue", queue, "cbor")
 }
 
-peerSocket.onopen = () => {
-  const queue = get_queue()
-  // Attempt to send all enqueued data
-  for (let data of queue) {
-    peerSocket.send(data)
-  }
-}
-
-peerSocket.onmessage = event => {
-  const data = event.data
-  if (data._asap_id) {
-    switch (data._asap_status) {
-      case "sending":
-        if (data._asap_id && peerSocket.readyState === peerSocket.OPEN) {
-          asap.onmessage(data._asap_message)
-          peerSocket.send({_asap_status: "received", _asap_id: data._asap_id})
-        }
-        break
-      case "received":
-        dequeue(data._asap_id)
-        break
-    }
-  }
-}
-
 const send = (message, options) => {
   const now = Date.now()
   // Set default options
@@ -76,6 +51,45 @@ const send = (message, options) => {
   }
   // Add the data to the queue
   enqueue(data)
+}
+
+const send_all = () => {
+  const queue = get_queue()
+  for (let data of queue) {
+    try {
+      peerSocket.send(data)
+    } catch (error) {
+      debug && console.log(error)
+    }
+  }
+}
+
+// Attempt to send enqueued data after startup (the onopen event is unreliable during startup)
+setTimeout(() => {
+  send_all()
+}, 1000)
+
+// Attempt to send enqueued data when a connection opens after startup
+peerSocket.onopen = () => {
+  send_all()
+}
+
+// Receive messages from the companion
+peerSocket.onmessage = event => {
+  const data = event.data
+  if (data._asap_id) {
+    switch (data._asap_status) {
+      case "sending":
+        if (data._asap_id && peerSocket.readyState === peerSocket.OPEN) {
+          asap.onmessage(data._asap_message)
+          peerSocket.send({_asap_status: "received", _asap_id: data._asap_id})
+        }
+        break
+      case "received":
+        dequeue(data._asap_id)
+        break
+    }
+  }
 }
 
 const asap = {

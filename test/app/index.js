@@ -1,9 +1,7 @@
-import asap from "fitbit-asap/app"
+import asap from "../../app"
 
-setTimeout(() => {
-  console.log("Device --> Companion")
-  asap.send("See you later, alligator.")
-}, 3000)
+console.log("Device --> Companion")
+asap.send("See you later, alligator.")
 
 asap.onmessage = message => {
   console.log(message)
