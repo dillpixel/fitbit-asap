@@ -60,24 +60,28 @@ const send_all = () => {
   }
 }
 
-// Attempt to send enqueued data after startup (the onopen event is unreliable during startup)
+// Attempt to send enqueued data after startup (the open event is unreliable during startup)
 setTimeout(() => {
   send_all()
 }, 1000)
 
 // Attempt to send enqueued data when a connection opens after startup
-peerSocket.onopen = () => {
+peerSocket.addEventListener("open", () => {
   send_all()
-}
+})
 
-peerSocket.onmessage = event => {
+peerSocket.addEventListener("message", event => {
   const data = event.data
   if (data._asap_id) {
     switch (data._asap_status) {
       case "sending":
-        if (data._asap_id && peerSocket.readyState === peerSocket.OPEN) {
-          asap.onmessage(data._asap_message)
-          peerSocket.send({_asap_status: "received", _asap_id: data._asap_id})
+        if (data._asap_id) {
+          try {
+            peerSocket.send({_asap_status: "received", _asap_id: data._asap_id})
+            asap.onmessage(data._asap_message)
+          } catch (error) {
+            debug && console.log(error)
+          }
         }
         break
       case "received":
@@ -85,7 +89,7 @@ peerSocket.onmessage = event => {
         break
     }
   }
-}
+})
 
 
 

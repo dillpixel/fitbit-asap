@@ -1,4 +1,5 @@
 source
 test
+node_modules
 .DS_Store
 .wakatime-project
