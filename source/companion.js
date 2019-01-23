@@ -4,24 +4,36 @@ import { peerSocket } from "messaging"
 const debug = false
 
 const get_queue = () => {
-  return JSON.parse(localStorage.getItem("_asap_queue") || "[]")
+  try {
+    const queue = JSON.parse(localStorage.getItem("_asap_queue"))
+    if (Array.isArray(queue)) {
+      return queue
+    } else {
+      return []
+    }
+  } catch (error) {
+    return []
+  }
 }
 
 const enqueue = (data) => {
   debug && console.log("Enqueue Message ID #" + data._asap_id)
+  // Add the message to the queue
   const queue = get_queue()
   queue.push(data)
-  localStorage.setItem("_asap_queue", JSON.stringify(queue))
-  // Attempt to send the data immediately
+  // Write the queue to disk
   try {
-    peerSocket.send(data)
+    localStorage.setItem("_asap_queue", JSON.stringify(queue))
   } catch (error) {
     debug && console.log(error)
   }
+  // Attempt to send all data
+  send_all()
 }
 
 const dequeue = (id) => {
   debug && console.log("Dequeue Message ID #" + id)
+  // Remove the message from the queue
   const queue = get_queue()
   for (let i in queue) {
     if (queue[i]._asap_id === id) {
@@ -29,7 +41,12 @@ const dequeue = (id) => {
       break
     }
   }
-  localStorage.setItem("_asap_queue", JSON.stringify(queue))
+  // Write the queue to disk
+  try {
+    localStorage.setItem("_asap_queue", JSON.stringify(queue))
+  } catch (error) {
+    debug && console.log(error)
+  }
 }
 
 const send = (message, options) => {

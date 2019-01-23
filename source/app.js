@@ -5,7 +5,12 @@ const debug = false
 
 const get_queue = () => {
   try {
-    return readFileSync("_asap_queue", "cbor")
+    const queue = readFileSync("_asap_queue", "cbor")
+    if (Array.isArray(queue)) {
+      return queue
+    } else {
+      return []
+    }
   } catch (error) {
     return []
   }
@@ -13,19 +18,22 @@ const get_queue = () => {
 
 const enqueue = (data) => {
   debug && console.log("Enqueue Message ID #" + data._asap_id)
+  // Add the message to the queue
   const queue = get_queue()
   queue.push(data)
-  writeFileSync("_asap_queue", queue, "cbor")
-  // Attempt to send the data immediately
+  // Write the queue to disk
   try {
-    peerSocket.send(data)
+    writeFileSync("_asap_queue", queue, "cbor")
   } catch (error) {
     debug && console.log(error)
   }
+  // Attempt to send all data
+  send_all()
 }
 
 const dequeue = (id) => {
   debug && console.log("Dequeue Message ID #" + id)
+  // Remove the message from the queue
   const queue = get_queue()
   for (let i in queue) {
     if (queue[i]._asap_id === id) {
@@ -33,7 +41,12 @@ const dequeue = (id) => {
       break
     }
   }
-  writeFileSync("_asap_queue", queue, "cbor")
+  // Write the queue to disk
+  try {
+    writeFileSync("_asap_queue", queue, "cbor")
+  } catch (error) {
+    debug && console.log(error)
+  }
 }
 
 const send = (message, options) => {
