@@ -36,13 +36,13 @@ asap.onmessage = message => {
 }
 ```
 ## API
-### `asap.send(message, options)`
+#### `asap.send(message, options)`
 Queues a message to be sent to the peer.
 ##### `message` **any**
 The message to be sent to the peer. This can be any data type.
 ##### `options` **object**
 Options for how this message should be handled. Currently, only `timeout` is supported.
 ##### `options.timeout` **integer**
-The maximum amount of time a message can remain in the queue. Time is specified in milliseconds. The default is 2592000000 (30 days).
-### `asap.onmessage` **function**
-Called when a message is received from the peer. This function accepts a single parameter containing the message, which will have the same data type it had when it was passed into the `send` function.
+The maximum amount of time a message can remain in the queue. Time is specified in milliseconds and the default is 2592000000 (30 days).
+#### `asap.onmessage = message => { ... }`
+Called when a message is received from the peer. The function assigned to `asap.onmessage` accepts a single parameter containing the message, which will have the same data type it had when it was passed into the `send` function.
