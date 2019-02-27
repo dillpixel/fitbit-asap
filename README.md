@@ -42,7 +42,7 @@ Queues a message to be sent to the peer.
 The message to be sent to the peer. This can be any data type.
 ##### `options` **object**
 Options for how this message should be handled. Currently, only `timeout` is supported.
-##### `options.timeout` **integer**
-The maximum amount of time a message can remain in the queue. Time is specified in milliseconds and the default is 2592000000 (30 days).
+##### `options.timeout` **integer** *or* **string**
+The maximum amount of time a message can remain in the queue. Currently, only the string `"session"` is supported, which will cause messages to expire when the app is unloaded. In the future, integers representing time in milliseconds will also be supported.
 #### `asap.onmessage = message => { ... }`
 Called when a message is received from the peer. The function assigned to `asap.onmessage` accepts a single parameter containing the message, which will have the same data type it had when it was passed into the `send` function.
