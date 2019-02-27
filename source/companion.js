@@ -71,7 +71,7 @@ const send_all = () => {
 
 const persist_queue = (queue) => {
   try {
-    writeFileSync("_asap_queue", queue, "cbor")
+    localStorage.setItem("_asap_queue", JSON.stringify(queue))
   } catch (error) {
     debug && console.log(error)
   }
