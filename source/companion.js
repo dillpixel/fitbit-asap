@@ -22,11 +22,7 @@ const enqueue = (data) => {
   const queue = get_queue()
   queue.push(data)
   // Write the queue to disk
-  try {
-    localStorage.setItem("_asap_queue", JSON.stringify(queue))
-  } catch (error) {
-    debug && console.log(error)
-  }
+  persist_queue(queue)
   // Attempt to send all data
   send_all()
 }
@@ -42,11 +38,7 @@ const dequeue = (id) => {
     }
   }
   // Write the queue to disk
-  try {
-    localStorage.setItem("_asap_queue", JSON.stringify(queue))
-  } catch (error) {
-    debug && console.log(error)
-  }
+  persist_queue(queue)
 }
 
 const send = (message, options) => {
@@ -58,7 +50,7 @@ const send = (message, options) => {
   const data = {
     _asap_id: Math.floor(Math.random() * 10000000000), // Random 10-digit number
     _asap_created: now,
-    _asap_expires: now + options.timeout,
+    _asap_timeout: options.timeout,
     _asap_status: "sending",
     _asap_message: message
   }
@@ -76,6 +68,21 @@ const send_all = () => {
     }
   }
 }
+
+const persist_queue = (queue) => {
+  try {
+    localStorage.setItem("_asap_queue", JSON.stringify(queue))
+  } catch (error) {
+    debug && console.log(error)
+  }
+}
+
+// Remove all messages with "session" timeout from the queue
+persist_queue(
+  get_queue().filter(msg => {
+    return msg._asap_timeout !== "session"
+  })
+)
 
 // Attempt to send enqueued data after startup (the open event is unreliable during startup)
 setTimeout(() => {
