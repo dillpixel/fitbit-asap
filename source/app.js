@@ -61,7 +61,6 @@ const send = (message, options) => {
   enqueue(data)
 
   if (get_queue().length == 1) {
-    debug && console.log("send - only 1 msg in queue")
     send_next()
   }
 }
@@ -78,7 +77,6 @@ const get_next_id = () => {
 const send_next = () => {
   if (resend_timer == null) {
     const queue = get_queue()
-    debug && console.log("send_next, queue.length: " + queue.length)
     if (queue.length > 0) {
       try {
         if (is_message_expired(queue[0])) {

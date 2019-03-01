@@ -24,8 +24,6 @@ const enqueue = (data) => {
   // Add the message to the queue
   const queue = get_queue()
   queue.push(data)
-  debug && console.log(data)
-  debug && console.log(queue)
   // Write the queue to disk
   persist_queue(queue)
   // Attempt to send all data
@@ -79,7 +77,6 @@ const get_next_id = () => {
 const send_next = () => {
   if (resend_timer == null) {
     const queue = get_queue()
-    debug && console.log("send_next, queue.length: " + queue.length)
     if (queue.length > 0) {
       try {
         if (is_message_expired(queue[0])) {
@@ -106,7 +103,6 @@ const send_all = () => {
 }
 
 const persist_queue = (queue) => {
-  debug && console.log("persist_queue: " + queue)
   try {
     localStorage.setItem("_asap_queue", JSON.stringify(queue))
   } catch (error) {
