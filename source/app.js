@@ -2,6 +2,9 @@ import { readFileSync, writeFileSync } from "fs"
 import { peerSocket } from "messaging"
 
 const debug = false
+const seed = Math.floor(Math.random() * 10000000000)
+var last_received_message_id = -1
+var resend_timer = null
 
 const get_queue = () => {
   try {
@@ -56,6 +59,38 @@ const send = (message, options) => {
   }
   // Add the data to the queue
   enqueue(data)
+
+  if (get_queue().length == 1) {
+    debug && console.log("send - only 1 msg in queue")
+    send_next()
+  }
+}
+
+const get_next_id = () => {
+  const last_msg = get_queue().slice(-1)[0]
+  if (last_msg && last_msg._asap_id) {
+    return last_msg._asap_id + 1
+  } else {
+    return seed
+  }
+}
+
+const send_next = () => {
+  if (resend_timer == null) {
+    const queue = get_queue()
+    debug && console.log("send_next, queue.length: " + queue.length)
+    if (queue.length > 0) {
+      try {
+        if (is_message_expired(queue[0])) {
+          return
+        }
+        peerSocket.send(queue[0])
+        set_resend_timer()
+      } catch (error) {
+        debug && console.log(error)
+      }
+    }
+  }
 }
 
 const send_all = () => {
@@ -98,20 +133,23 @@ peerSocket.addEventListener("open", () => {
 peerSocket.addEventListener("message", event => {
   const data = event.data
   if (data._asap_id) {
-    switch (data._asap_status) {
-      case "sending":
-        if (data._asap_id) {
-          try {
-            peerSocket.send({_asap_status: "received", _asap_id: data._asap_id})
-            asap.onmessage(data._asap_message)
-          } catch (error) {
-            debug && console.log(error)
-          }
-        }
-        break
-      case "received":
-        dequeue(data._asap_id)
-        break
+    if (!data._asap_ack) {
+      // Received a real message
+      if (data._asap_id > last_received_message_id) {
+        asap.onmessage(data._asap_message)
+        last_received_message_id = data._asap_id
+      }
+      try {
+        peerSocket.send({_asap_ack: true, _asap_id: data._asap_id})
+      } catch (error) {
+        debug && console.log(error)
+      }
+    } else {
+      // Received an ACK
+
+      dequeue(data._asap_id)
+      clear_resend_timer()
+      send_next()
     }
   }
 })

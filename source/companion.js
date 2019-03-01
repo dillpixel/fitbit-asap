@@ -2,6 +2,9 @@ import { localStorage } from "local-storage";
 import { peerSocket } from "messaging"
 
 const debug = false
+const seed = Math.floor(Math.random() * 10000000000)
+var last_received_message_id = -1
+var resend_timer = null
 
 const get_queue = () => {
   try {
@@ -21,6 +24,8 @@ const enqueue = (data) => {
   // Add the message to the queue
   const queue = get_queue()
   queue.push(data)
+  debug && console.log(data)
+  debug && console.log(queue)
   // Write the queue to disk
   persist_queue(queue)
   // Attempt to send all data
@@ -56,6 +61,37 @@ const send = (message, options) => {
   }
   // Add the data to the queue
   enqueue(data)
+
+  if (get_queue().length == 1) {
+    send_next()
+  }
+}
+
+const get_next_id = () => {
+  const last_msg = get_queue().slice(-1)[0]
+  if (last_msg && last_msg._asap_id) {
+    return last_msg._asap_id + 1
+  } else {
+    return seed
+  }
+}
+
+const send_next = () => {
+  if (resend_timer == null) {
+    const queue = get_queue()
+    debug && console.log("send_next, queue.length: " + queue.length)
+    if (queue.length > 0) {
+      try {
+        if (is_message_expired(queue[0])) {
+          return
+        }
+        peerSocket.send(queue[0])
+        set_resend_timer()
+      } catch (error) {
+        debug && console.log(error)
+      }
+    }
+  }
 }
 
 const send_all = () => {
@@ -70,6 +106,7 @@ const send_all = () => {
 }
 
 const persist_queue = (queue) => {
+  debug && console.log("persist_queue: " + queue)
   try {
     localStorage.setItem("_asap_queue", JSON.stringify(queue))
   } catch (error) {
