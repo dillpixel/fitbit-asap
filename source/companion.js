@@ -26,8 +26,6 @@ const enqueue = (data) => {
   queue.push(data)
   // Write the queue to disk
   persist_queue(queue)
-  // Attempt to send all data
-  send_all()
 }
 
 const dequeue = (id) => {
@@ -54,8 +52,8 @@ const send = (message, options) => {
     _asap_id: Math.floor(Math.random() * 10000000000), // Random 10-digit number
     _asap_created: now,
     _asap_timeout: options.timeout,
-    _asap_status: "sending",
-    _asap_message: message
+    _asap_message: message,
+    _asap_ack: false
   }
   // Add the data to the queue
   enqueue(data)
@@ -110,6 +108,13 @@ const persist_queue = (queue) => {
   }
 }
 
+const is_message_expired = (message) => {
+  if (!isNaN(message._asap_timeout)) {
+    return (Date.now() >= message._asap_created + message._asap_timeout)
+  }
+  return false
+}
+
 // Remove all messages with "session" timeout from the queue
 persist_queue(
   get_queue().filter(msg => {
@@ -117,33 +122,53 @@ persist_queue(
   })
 )
 
+// Sets a timer to resend the latest message after X seconds
+// There is always just one timer
+const set_resend_timer = () => {
+  resend_timer = setTimeout(() => {
+    clear_resend_timer()
+    send_next()
+  }, 5000);
+}
+
+// Clears the resend timer - for the case we get an ACK
+const clear_resend_timer = () => {
+  if (resend_timer) {
+    clearTimeout(resend_timer)
+    resend_timer = null
+  }
+}
+
+
 // Attempt to send enqueued data after startup (the open event is unreliable during startup)
 setTimeout(() => {
-  send_all()
+  send_next()
 }, 1000)
 
 // Attempt to send enqueued data when a connection opens after startup
 peerSocket.addEventListener("open", () => {
-  send_all()
+  send_next()
 })
 
 peerSocket.addEventListener("message", event => {
   const data = event.data
   if (data._asap_id) {
-    switch (data._asap_status) {
-      case "sending":
-        if (data._asap_id) {
-          try {
-            peerSocket.send({_asap_status: "received", _asap_id: data._asap_id})
-            asap.onmessage(data._asap_message)
-          } catch (error) {
-            debug && console.log(error)
-          }
-        }
-        break
-      case "received":
-        dequeue(data._asap_id)
-        break
+    if (!data._asap_ack) {
+      // Received a real message
+      if (data._asap_id > last_received_message_id) {
+        asap.onmessage(data._asap_message)
+        last_received_message_id = data._asap_id
+      }
+      try {
+        peerSocket.send({ _asap_ack: true, _asap_id: data._asap_id })
+      } catch (error) {
+        debug && console.log(error)
+      }
+    } else {
+      // Received an ACK
+      dequeue(data._asap_id)
+      clear_resend_timer()
+      send_next()
     }
   }
 })

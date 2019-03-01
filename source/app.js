@@ -26,8 +26,6 @@ const enqueue = (data) => {
   queue.push(data)
   // Write the queue to disk
   persist_queue(queue)
-  // Attempt to send all data
-  send_all()
 }
 
 const dequeue = (id) => {
@@ -54,8 +52,8 @@ const send = (message, options) => {
     _asap_id: Math.floor(Math.random() * 10000000000), // Random 10-digit number
     _asap_created: now,
     _asap_timeout: options.timeout,
-    _asap_status: "sending",
-    _asap_message: message
+    _asap_message: message,
+    _asap_ack: false
   }
   // Add the data to the queue
   enqueue(data)
@@ -110,6 +108,30 @@ const persist_queue = (queue) => {
   }
 }
 
+const is_message_expired = (message) => {
+  if (!isNaN(message._asap_timeout)) {
+    return (Date.now() >= message._asap_created + message._asap_timeout)
+  }
+  return false
+}
+
+// Sets a timer to resend the latest message after X seconds
+// There is always just one timer
+const set_resend_timer = () => {
+  resend_timer = setTimeout(() => {
+    clear_resend_timer()
+    send_next()
+  }, 5000);
+}
+
+// Clears the resend timer - for the case we get an ACK
+const clear_resend_timer = () => {
+  if (resend_timer) {
+    clearTimeout(resend_timer)
+    resend_timer = null
+  }
+}
+
 // Remove all messages with "session" timeout from the queue
 persist_queue(
   get_queue().filter(msg => {
@@ -119,12 +141,12 @@ persist_queue(
 
 // Attempt to send enqueued data after startup (the open event is unreliable during startup)
 setTimeout(() => {
-  send_all()
+  send_next()
 }, 1000)
 
 // Attempt to send enqueued data when a connection opens after startup
 peerSocket.addEventListener("open", () => {
-  send_all()
+  send_next()
 })
 
 // Receive messages from the companion
@@ -144,7 +166,6 @@ peerSocket.addEventListener("message", event => {
       }
     } else {
       // Received an ACK
-
       dequeue(data._asap_id)
       clear_resend_timer()
       send_next()
