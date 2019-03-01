@@ -49,7 +49,7 @@ const send = (message, options) => {
   options.timeout = options.timeout || 2592000000 // 30 days
   // Create the data object
   const data = {
-    _asap_id: Math.floor(Math.random() * 10000000000), // Random 10-digit number
+    _asap_id: get_next_id(),
     _asap_created: now,
     _asap_timeout: options.timeout,
     _asap_message: message,
