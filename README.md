@@ -1,5 +1,5 @@
 # Fitbit ASAP
-Fitbit ASAP allows you to send peer messages between a Fitbit OS device and companion without worrying about the connection state. When no connection is available, messages are cached and automatically sent once a connection is available (hence the name ASAP, an English acronym for "as soon as possible").
+Fitbit ASAP allows you to send peer messages reliably between a Fitbit OS device and companion. If a peer is not connected at the time of sending, messages are cached and automatically sent as soon as a connection becomes available (hence the name ASAP, an English acronym for "as soon as possible"). Fitbit ASAP also handles the re-sending of dropped messages (e.g. when the peer connection is lost before a message has finished sending).
 ## Usage
 This module assumes you're using the [Fitbit CLI](https://dev.fitbit.com/build/guides/command-line-interface/) in your workflow, which allows you to manage packages using [npm](https://docs.npmjs.com/about-npm/).
 #### Installation
