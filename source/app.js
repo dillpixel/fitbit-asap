@@ -2,7 +2,6 @@ import { readFileSync, writeFileSync } from "fs"
 import { peerSocket } from "messaging"
 
 const debug = false
-const seed = Math.floor(Math.random() * 10000000000)
 var last_received_message_id = -1
 var resend_timer = null
 
@@ -64,11 +63,11 @@ const send = (message, options) => {
 }
 
 const get_next_id = () => {
-  const last_msg = get_queue().slice(-1)[0]
-  if (last_msg && last_msg._asap_id) {
-    return last_msg._asap_id + 1
+  const last_message = get_queue().slice(-1)[0]
+  if (last_message && last_message._asap_id) {
+    return last_message._asap_id + 1
   } else {
-    return seed
+    return Math.floor(Math.random() * 10000000000)
   }
 }
 
