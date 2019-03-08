@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "fs"
 import { peerSocket } from "messaging"
 
 const debug = false
+var last_generated_message_id = -1
 var last_received_message_id = -1
 var resend_timer = null
 
@@ -63,12 +64,10 @@ const send = (message, options) => {
 }
 
 const get_next_id = () => {
-  const last_message = get_queue().slice(-1)[0]
-  if (last_message && last_message._asap_id) {
-    return last_message._asap_id + 1
-  } else {
-    return Math.floor(Math.random() * 10000000000)
+  if (last_generated_message_id < 0) {
+    last_generated_message_id = Math.floor(Math.random() * 10000000000)
   }
+  return ++last_generated_message_id
 }
 
 const send_next = () => {
@@ -130,6 +129,15 @@ const clear_resend_timer = () => {
     resend_timer = null
   }
 }
+
+// Set the last generated ID in case we load a persisted queue on startup
+const set_last_generated_id_according_to_queue = () => {
+  const last_message = get_queue().slice(-1)[0]
+  if (last_message && last_message._asap_id) {
+    last_generated_message_id = last_message._asap_id + 1
+  }
+}
+set_last_generated_id_according_to_queue()
 
 // Remove all messages with "session" timeout from the queue
 persist_queue(
