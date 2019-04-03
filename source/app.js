@@ -34,7 +34,7 @@ const dequeue = (id) => {
   const queue = get_queue()
   for (let i in queue) {
     if (queue[i]._asap_id === id) {
-      queue.splice(i)
+      queue.splice(i,1)
       break
     }
   }
