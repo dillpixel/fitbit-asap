@@ -82,6 +82,7 @@ const send_next = () => {
         set_resend_timer()
       } catch (error) {
         debug && console.log(error)
+        set_resend_timer()
       }
     }
   }
