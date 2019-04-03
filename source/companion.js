@@ -81,6 +81,7 @@ const send_next = () => {
         peerSocket.send(queue[0])
       } catch (error) {
         debug && console.log(error)
+        set_resend_timer()
       }
       set_resend_timer()
     }
