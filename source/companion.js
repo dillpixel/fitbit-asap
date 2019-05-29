@@ -1,3 +1,4 @@
+import { decode, encode } from "cbor"
 import { localStorage } from "local-storage"
 import { peerSocket } from "messaging"
 
@@ -40,7 +41,7 @@ function enqueue(message, options) {
     _asap_receipt: false
   }
   // Save the message to disk
-  localStorage.setItem("_asap_" + data._asap_id, JSON.stringify(data))
+  localStorage.setItem("_asap_" + data._asap_id, JSON.stringify(Array.from(new Uint8Array(encode(data)))))
   // Add the message ID to the queue
   queue.push(data._asap_id)
   // Persist the queue to disk
@@ -100,7 +101,7 @@ function process() {
     const id = queue[0]
     // Attempt to read the message from disk
     try {
-      const message = JSON.parse(localStorage.getItem("_asap_" + id))
+      const message = decode((new Uint8Array(JSON.parse(localStorage.getItem("_asap_" + id)))).buffer)
       // If the message has expired
       if (message._asap_created + message._asap_timeout < Date.now()) {
         // Dequeue the message
@@ -112,7 +113,7 @@ function process() {
         try {
           peerSocket.send(message)
         } catch (error) {
-          debug && console.log(JSON.stringify(error))
+          debug && console.log(error)
         }
       }
     }

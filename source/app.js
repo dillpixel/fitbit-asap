@@ -11,7 +11,7 @@ let queue = []
 
 // Attempt to load a saved queue on startup
 try {
-  queue = readFileSync("_asap_queue", "json")
+  queue = readFileSync("_asap_queue", "cbor")
   // Ensure that the queue is an array
   if (!Array.isArray(queue)) {
     queue = []
@@ -40,11 +40,11 @@ function enqueue(message, options) {
     _asap_receipt: false
   }
   // Save the message to disk
-  writeFileSync("_asap_" + data._asap_id, data, "json")
+  writeFileSync("_asap_" + data._asap_id, data, "cbor")
   // Add the message ID to the queue
   queue.push(data._asap_id)
   // Persist the queue to disk
-  writeFileSync("_asap_queue", queue, "json")
+  writeFileSync("_asap_queue", queue, "cbor")
   // If the queue was previously empty
   if (queue.length === 1) {
     // Begin processing the queue
@@ -88,7 +88,7 @@ function dequeue(id) {
     debug && console.log("Dequeued all messages")
   }
   // Persist the queue to disk
-  writeFileSync("_asap_queue", queue, "json")
+  writeFileSync("_asap_queue", queue, "cbor")
   // Continue processing the queue
   process()
 }
@@ -104,7 +104,7 @@ function process() {
     const id = queue[0]
     // Attempt to read the message from disk
     try {
-      const message = readFileSync("_asap_" + id, "json")
+      const message = readFileSync("_asap_" + id, "cbor")
       // If the message has expired
       if (message._asap_created + message._asap_timeout < Date.now()) {
         // Dequeue the message
@@ -116,7 +116,7 @@ function process() {
         try {
           peerSocket.send(message)
         } catch (error) {
-          debug && console.log(JSON.stringify(error))
+          debug && console.log(error)
         }
       }
     }
