@@ -1,6 +1,6 @@
 <svg viewport-fill="black">
   <use id="mixedtext" href="#mixed-text-center-mid" height="100%" fill="fb-magenta">
     <set href="#header/text" attributeName="text-buffer" to="Fitbit ASAP"/>
-    <set href="#copy/text" attributeName="text-buffer" to="Send peer messages without worrying about connection state."/>
+    <set href="#copy/text" attributeName="text-buffer" to="Send peer messages reliably on Fitbit OS."/>
   </use>
 </svg>

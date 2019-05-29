@@ -1,7 +1,9 @@
-import asap from "../../app"
+import asap from "../../source/app"
+import { HeartRateSensor } from "heart-rate"
 
-console.log("Device --> Companion")
-asap.send("See you later, alligator.")
+for (let i = 0; i < 10; i++) {
+  asap.send(`Message #${i + 1}`)
+}
 
 asap.onmessage = message => {
   console.log(message)

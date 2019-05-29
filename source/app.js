@@ -1,187 +1,173 @@
-import { readFileSync, writeFileSync } from "fs"
+import { readFileSync, unlinkSync, writeFileSync } from "fs"
 import { peerSocket } from "messaging"
 
 const debug = false
-var last_generated_message_id = -1
-var last_received_message_id = -1
-var resend_timer = null
 
-const get_queue = () => {
-  try {
-    const queue = readFileSync("_asap_queue", "cbor")
-    if (Array.isArray(queue)) {
-      return queue
-    } else {
-      return []
-    }
-  } catch (error) {
-    return []
+//====================================================================================================
+// Initialize Queue
+//====================================================================================================
+
+let queue = []
+
+// Attempt to load a saved queue on startup
+try {
+  queue = readFileSync("_asap_queue", "json")
+  // Ensure that the queue is an array
+  if (!Array.isArray(queue)) {
+    queue = []
   }
 }
-
-const enqueue = (data) => {
-  debug && console.log("Enqueue Message ID #" + data._asap_id)
-  // Add the message to the queue
-  const queue = get_queue()
-  queue.push(data)
-  // Write the queue to disk
-  persist_queue(queue)
+// If a saved queue could not be loaded
+catch (error) {
+  // Continue with an empty queue
+  queue = []
 }
 
-const dequeue = (id) => {
-  debug && console.log("Dequeue Message ID #" + id)
-  // Remove the message from the queue
-  const queue = get_queue()
-  for (let i in queue) {
-    if (queue[i]._asap_id === id) {
-      queue.splice(i,1)
-      break
-    }
-  }
-  // Write the queue to disk
-  persist_queue(queue)
-}
+//====================================================================================================
+// Enqueue
+//====================================================================================================
 
-const send = (message, options) => {
-  const now = Date.now()
-  // Set default options
+function enqueue(message, options) {
+  // Set the default options
   options = options || {}
-  options.timeout = options.timeout || 2592000000 // 30 days
-  // Create the data object
+  options.timeout = options.timeout || 86400000 // 24 hours
+  // Store metadata with the message
   const data = {
-    _asap_id: get_next_id(),
-    _asap_created: now,
+    _asap_id: queue.length > 0 ? Math.max(...queue) + 1 : 1,
+    _asap_created: Date.now(),
     _asap_timeout: options.timeout,
     _asap_message: message,
-    _asap_ack: false
+    _asap_receipt: false
   }
-  // Add the data to the queue
-  enqueue(data)
-
-  if (get_queue().length == 1) {
-    send_next()
+  // Save the message to disk
+  writeFileSync("_asap_" + data._asap_id, data, "json")
+  // Add the message ID to the queue
+  queue.push(data._asap_id)
+  // Persist the queue to disk
+  writeFileSync("_asap_queue", queue, "json")
+  // If the queue was previously empty
+  if (queue.length === 1) {
+    // Begin processing the queue
+    process()
   }
+  debug && console.log("Enqueued message #" + data._asap_id)
 }
 
-const get_next_id = () => {
-  if (last_generated_message_id < 0) {
-    last_generated_message_id = Math.floor(Math.random() * 10000000000)
-  }
-  return ++last_generated_message_id
-}
+//====================================================================================================
+// Dequeue
+//====================================================================================================
 
-const send_next = () => {
-  if (resend_timer == null) {
-    const queue = get_queue()
-    if (queue.length > 0) {
-      try {
-        if (is_message_expired(queue[0])) {
-          return
+function dequeue(id) {
+  // If an ID is provided
+  if (id) {
+    // Iterate over the queue
+    for (let i in queue) {
+      // If a match is found
+      if (queue[i] === id) {
+        // Delete the message from disk
+        try {
+          unlinkSync("_asap_" + id)
+        } catch (error) {
+          debug && console.log(error)
         }
-        peerSocket.send(queue[0])
-      } catch (error) {
-        debug && console.log(error)
+        // Remove the message ID from the queue
+        queue.splice(i, 1)
+        break
       }
-      set_resend_timer()
     }
+    debug && console.log("Dequeued message #" + id)
   }
+  // If an ID is not provided
+  else {
+    // Delete all messages from disk
+    for (let i in queue) {
+      unlinkSync("_asap_" + queue[i])
+    }
+    // Reset the queue
+    queue = []
+    debug && console.log("Dequeued all messages")
+  }
+  // Persist the queue to disk
+  writeFileSync("_asap_queue", queue, "json")
+  // Continue processing the queue
+  process()
 }
 
-const send_all = () => {
-  const queue = get_queue()
-  for (let data of queue) {
+//====================================================================================================
+// Process Queue
+//====================================================================================================
+
+function process() {
+  // If the queue is not empty
+  if (queue.length > 0) {
+    // Get the next message ID
+    const id = queue[0]
+    // Attempt to read the message from disk
     try {
-      peerSocket.send(data)
-    } catch (error) {
-      debug && console.log(error)
+      const message = readFileSync("_asap_" + id, "json")
+      // If the message has expired
+      if (message._asap_created + message._asap_timeout < Date.now()) {
+        // Dequeue the message
+        dequeue(id)
+      }
+      // If the message has not expired
+      else {
+        // Attempt to send the message
+        try {
+          peerSocket.send(message)
+        } catch (error) {
+          debug && console.log(JSON.stringify(error))
+        }
+      }
+    }
+    // If the message could not be read from disk
+    catch {
+      // Dequeue the message
+      dequeue(id)
     }
   }
 }
 
-const persist_queue = (queue) => {
-  try {
-    writeFileSync("_asap_queue", queue, "cbor")
-  } catch (error) {
-    debug && console.log(error)
-  }
-}
-
-const is_message_expired = (message) => {
-  if (!isNaN(message._asap_timeout)) {
-    return (Date.now() >= message._asap_created + message._asap_timeout)
-  }
-  return false
-}
-
-// Sets a timer to resend the latest message after X seconds
-// There is always just one timer
-const set_resend_timer = () => {
-  resend_timer = setTimeout(() => {
-    clear_resend_timer()
-    send_next()
-  }, 5000);
-}
-
-// Clears the resend timer - for the case we get an ACK
-const clear_resend_timer = () => {
-  if (resend_timer) {
-    clearTimeout(resend_timer)
-    resend_timer = null
-  }
-}
-
-// Set the last generated ID in case we load a persisted queue on startup
-const set_last_generated_id_according_to_queue = () => {
-  const last_message = get_queue().slice(-1)[0]
-  if (last_message && last_message._asap_id) {
-    last_generated_message_id = last_message._asap_id + 1
-  }
-}
-set_last_generated_id_according_to_queue()
-
-// Remove all messages with "session" timeout from the queue
-persist_queue(
-  get_queue().filter(msg => {
-    return msg._asap_timeout !== "session"
-  })
-)
-
-// Attempt to send enqueued data after startup (the open event is unreliable during startup)
-setTimeout(() => {
-  send_next()
-}, 1000)
-
-// Attempt to send enqueued data when a connection opens after startup
+// Begin processing the queue when a connection opens
 peerSocket.addEventListener("open", () => {
-  send_next()
+  debug && console.log("Peer socket opened")
+  process()
 })
 
-// Receive messages from the companion
+//====================================================================================================
+// Incoming Messages
+//====================================================================================================
+
+// When a message is recieved from the peer
 peerSocket.addEventListener("message", event => {
   const data = event.data
-  if (data._asap_id) {
-    if (!data._asap_ack) {
-      // Received a real message
-      if (data._asap_id > last_received_message_id) {
-        asap.onmessage(data._asap_message)
-        last_received_message_id = data._asap_id
-      }
+  // If the message is being managed by ASAP
+  if (data._asap_id > -1) {
+    // If the message is a receipt
+    if (data._asap_receipt) {
+      // Dequeue the message
+      dequeue(data._asap_id)
+    }
+    // If the message originated from the peer
+    else {
+      asap.onmessage(data._asap_message)
+      // Send a receipt
       try {
-        peerSocket.send({_asap_ack: true, _asap_id: data._asap_id})
+        peerSocket.send({_asap_id: data._asap_id, _asap_receipt: true})
       } catch (error) {
         debug && console.log(error)
       }
-    } else {
-      // Received an ACK
-      dequeue(data._asap_id)
-      clear_resend_timer()
-      send_next()
     }
   }
 })
 
+//====================================================================================================
+// Exports
+//====================================================================================================
+
 const asap = {
-  send: send,
+  send: enqueue,
+  cancel: dequeue,
   onmessage: () => {}
 }
 

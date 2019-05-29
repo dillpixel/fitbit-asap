@@ -7,14 +7,6 @@ This module assumes you're using the [Fitbit CLI](https://dev.fitbit.com/build/g
 npm i fitbit-asap
 ```
 Fitbit ASAP has a uniform API that works on both the app and the companion. The only difference is the module name in the import statement, which is `fitbit-asap/app` for the app and `fitbit-asap/companion` for the companion.
-
-You'll also need to add permissions for `access_internet` and `run_background` in your `package.json` file.
-```
-"requestedPermissions": [
-  "access_internet",
-  "run_background"
-]
-```
 #### App
 ```javascript
 import asap from "fitbit-asap/app"
@@ -41,8 +33,10 @@ Queues a message to be sent to the peer.
 ##### `message` **any**
 The message to be sent to the peer. This can be any data type.
 ##### `options` **object**
-Options for how this message should be handled. Currently, only `timeout` is supported.
-##### `options.timeout` **integer** *or* **string**
-The maximum amount of time a message can remain in the queue. Currently, only the string `"session"` is supported, which will cause messages to expire when the app is unloaded. In the future, integers representing time in milliseconds will also be supported.
+Options for how this message should be handled. Currently, `timeout` is the only option.
+##### `options.timeout` **integer**
+The maximum number of milliseconds a message can remain in the queue.
 #### `asap.onmessage = message => { ... }`
 Called when a message is received from the peer. The function assigned to `asap.onmessage` accepts a single parameter containing the message, which will have the same data type it had when it was passed into the `send` function.
+#### `asap.cancel()`
+Cancels all queued messages.
