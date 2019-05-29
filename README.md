@@ -35,8 +35,8 @@ The message to be sent to the peer. This can be any data type.
 ##### `options` **object**
 Options for how this message should be handled. Currently, `timeout` is the only option.
 ##### `options.timeout` **integer**
-The maximum number of milliseconds a message can remain in the queue.
+The maximum number of milliseconds a message can remain in the queue. The default is 86400000 (24 hours).
 #### `asap.onmessage = message => { ... }`
 Called when a message is received from the peer. The function assigned to `asap.onmessage` accepts a single parameter containing the message, which will have the same data type it had when it was passed into the `send` function.
 #### `asap.cancel()`
-Cancels all queued messages.
+Cancels all queued messages. Call this function on startup to limit messages to a single session.
