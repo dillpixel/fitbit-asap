@@ -1,6 +1,8 @@
 import asap from "../../source/companion"
 import { settingsStorage } from "settings"
 
+asap.cancel()
+
 for (let i = 0; i < 10; i++) {
   asap.send(`Message #${i + 1}`)
 }

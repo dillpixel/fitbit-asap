@@ -1,6 +1,8 @@
 import asap from "../../source/app"
 import { HeartRateSensor } from "heart-rate"
 
+asap.cancel()
+
 for (let i = 0; i < 10; i++) {
   asap.send(`Message #${i + 1}`)
 }

@@ -1,7 +1,7 @@
 import { readFileSync, unlinkSync, writeFileSync } from "fs"
 import { peerSocket } from "messaging"
 
-const debug = false
+const debug = true
 
 //====================================================================================================
 // Initialize Queue
@@ -28,21 +28,14 @@ catch (error) {
 //====================================================================================================
 
 function enqueue(message, options) {
-  // Set the default options
-  options = options || {}
-  options.timeout = options.timeout || 86400000 // 24 hours
-  // Store metadata with the message
-  const data = {
-    _asap_id: queue.length > 0 ? Math.max(...queue) + 1 : 1,
-    _asap_created: Date.now(),
-    _asap_timeout: options.timeout,
-    _asap_message: message,
-    _asap_receipt: false
-  }
+  const id = queue.length > 0 ? Math.max(...queue) + 1 : 1
+  const timeout = Date.now() + (options && options.timeout ? options.timeout : 86400000)
+  // Construct the message
+  const data = ["asap_message", id, timeout, message]
   // Save the message to disk
-  writeFileSync("_asap_" + data._asap_id, data, "cbor")
+  writeFileSync("_asap_" + id, data, "cbor")
   // Add the message ID to the queue
-  queue.push(data._asap_id)
+  queue.push(id)
   // Persist the queue to disk
   writeFileSync("_asap_queue", queue, "cbor")
   // If the queue was previously empty
@@ -50,7 +43,7 @@ function enqueue(message, options) {
     // Begin processing the queue
     process()
   }
-  debug && console.log("Enqueued message #" + data._asap_id)
+  debug && console.log("Enqueued message #" + id)
 }
 
 //====================================================================================================
@@ -105,8 +98,9 @@ function process() {
     // Attempt to read the message from disk
     try {
       const message = readFileSync("_asap_" + id, "cbor")
+      const timeout = message[2]
       // If the message has expired
-      if (message._asap_created + message._asap_timeout < Date.now()) {
+      if (timeout < Date.now()) {
         // Dequeue the message
         dequeue(id)
       }
@@ -140,24 +134,24 @@ peerSocket.addEventListener("open", () => {
 
 // When a message is recieved from the peer
 peerSocket.addEventListener("message", event => {
-  const data = event.data
-  // If the message is being managed by ASAP
-  if (data._asap_id > -1) {
-    // If the message is a receipt
-    if (data._asap_receipt) {
-      // Dequeue the message
-      dequeue(data._asap_id)
+  const type = event.data[0]
+  const id = event.data[1]
+  const timeout = event.data[2]
+  const message = event.data[3]
+  // If this is a message
+  if (type == "asap_message") {
+    asap.onmessage(message)
+    // Send a receipt
+    try {
+      peerSocket.send(["asap_receipt", id])
+    } catch (error) {
+      debug && console.log(error)
     }
-    // If the message originated from the peer
-    else {
-      asap.onmessage(data._asap_message)
-      // Send a receipt
-      try {
-        peerSocket.send({_asap_id: data._asap_id, _asap_receipt: true})
-      } catch (error) {
-        debug && console.log(error)
-      }
-    }
+  }
+  // If this is a receipt
+  else if (type == "asap_receipt") {
+    // Dequeue the message
+    dequeue(id)
   }
 })
 
