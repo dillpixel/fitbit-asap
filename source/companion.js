@@ -2,7 +2,7 @@ import { decode, encode } from "cbor"
 import { localStorage } from "local-storage"
 import { peerSocket } from "messaging"
 
-const debug = true
+const debug = false
 
 //====================================================================================================
 // Initialize Queue

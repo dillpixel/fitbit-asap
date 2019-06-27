@@ -1,7 +1,7 @@
 import { readFileSync, unlinkSync, writeFileSync } from "fs"
 import { peerSocket } from "messaging"
 
-const debug = true
+const debug = false
 
 //====================================================================================================
 // Initialize Queue
