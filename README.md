@@ -40,3 +40,9 @@ The maximum number of milliseconds a message can remain in the queue. The defaul
 Called when a message is received from the peer. The function assigned to `asap.onmessage` accepts a single parameter containing the message, which will have the same data type it had when it was passed into the `send` function.
 #### `asap.cancel()`
 Cancels all queued messages. Call this function on startup to limit messages to a single session.
+
+## TypeScript definitions
+TypeScript developers could install types definitions ([fitbit-asap-types](https://github.com/JeremyJeanson/fitbit-asap-types)).
+```
+npm i fitbit-asap-types
+```
