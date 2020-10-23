@@ -42,7 +42,7 @@ Called when a message is received from the peer. The function assigned to `asap.
 Cancels all queued messages. Call this function on startup to limit messages to a single session.
 
 ## TypeScript definitions
-TypeScript developers could install types definitions ([fitbit-asap-types](https://github.com/JeremyJeanson/fitbit-asap-types)).
+TypeScript developers could install types definitions (from [@types/fitbit-asap](https://www.npmjs.com/package/@types/fitbit-asap) or [fitbit-asap-types](https://github.com/JeremyJeanson/fitbit-asap-types)).
 ```
-npm i fitbit-asap-types
+npm i @types/fitbit-asap
 ```
