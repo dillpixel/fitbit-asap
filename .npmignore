@@ -1,5 +1,5 @@
 source
-test
 node_modules
+tsconfig.json
 .DS_Store
 .wakatime-project
